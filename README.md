@@ -1,0 +1,3 @@
+dontnet build
+
+dotnet run

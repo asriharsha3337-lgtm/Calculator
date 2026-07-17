@@ -2,7 +2,12 @@ using ChangeCalculator.Models;
 
 namespace ChangeCalculator.Services;
 
-public class ChangeCalculatorService
+public interface IChangeCalculatorService
+{
+    List<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice);
+}
+
+public class ChangeCalculatorService : IChangeCalculatorService
 {
     private readonly List<Denomination> _denominations = new()
     {
@@ -22,9 +27,24 @@ public class ChangeCalculatorService
 
     public List<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice)
     {
-        int remaining = (int)Math.Round((amountGiven - productPrice) * 100);
+        if (amountGiven < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amountGiven), "Amount given cannot be negative.");
+        }
 
-        List<ChangeItem> result = new();
+        if (productPrice < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(productPrice), "Product price cannot be negative.");
+        }
+
+        if (productPrice > amountGiven)
+        {
+            throw new ArgumentException("Product price cannot exceed the amount given.", nameof(productPrice));
+        }
+
+        int remaining = (int)Math.Round((amountGiven - productPrice) * 100, MidpointRounding.AwayFromZero);
+
+        var result = new List<ChangeItem>();
 
         foreach (var denomination in _denominations)
         {

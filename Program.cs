@@ -2,6 +2,6 @@
 
 var app = new ChangeCalculatorApp(
     new ChangeCalculatorService(),
-    new TextConsole());
+    new ChangeCalculatorValidator());
 
 return app.Run();

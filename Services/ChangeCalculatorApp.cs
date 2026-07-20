@@ -2,67 +2,48 @@ using ChangeCalculator.Models;
 
 namespace ChangeCalculator.Services;
 
-public interface IConsole
-{
-    void WriteLine(string? value = null);
-    void Write(string value);
-    string? ReadLine();
-}
-
-public class TextConsole : IConsole
-{
-    public void WriteLine(string? value = null) => Console.WriteLine(value);
-    public void Write(string value) => Console.Write(value);
-    public string? ReadLine() => Console.ReadLine();
-}
-
-public class ChangeCalculatorApp
+public sealed class ChangeCalculatorApp
 {
     private readonly IChangeCalculatorService _calculatorService;
-    private readonly IConsole _console;
+    private readonly IChangeCalculatorValidator _validator;
 
-    public ChangeCalculatorApp(IChangeCalculatorService calculatorService, IConsole console)
+    public ChangeCalculatorApp(IChangeCalculatorService calculatorService, IChangeCalculatorValidator validator)
     {
-        _calculatorService = calculatorService;
-        _console = console;
+        _calculatorService = calculatorService ?? throw new ArgumentNullException(nameof(calculatorService));
+        _validator = validator ?? throw new ArgumentNullException(nameof(validator));
     }
 
     public int Run()
     {
-        _console.WriteLine("=== UK Change Calculator ===");
-        _console.WriteLine();
+        Console.WriteLine("=== UK Change Calculator ===");
+        Console.WriteLine();
 
-        _console.Write("Amount Given (£): ");
-        string? amountInput = _console.ReadLine();
-        _console.Write("Product Price (£): ");
-        string? priceInput = _console.ReadLine();
+        Console.Write("Amount Given (£): ");
+        string? amountInput = Console.ReadLine();
 
-        if (!decimal.TryParse(amountInput, out decimal amountGiven))
+        Console.Write("Product Price (£): ");
+        string? priceInput = Console.ReadLine();
+
+        if (!_validator.TryParseAmounts(amountInput, priceInput, out decimal amountGiven, out decimal productPrice, out string? errorMessage))
         {
-            _console.WriteLine("Invalid amount.");
+            Console.WriteLine(errorMessage);
             return 1;
         }
 
-        if (!decimal.TryParse(priceInput, out decimal productPrice))
+        IReadOnlyList<ChangeItem> changeItems = _calculatorService.CalculateChange(amountGiven, productPrice);
+
+        Console.WriteLine();
+        Console.WriteLine("Your change is:");
+
+        if (changeItems.Count == 0)
         {
-            _console.WriteLine("Invalid product price.");
-            return 1;
+            Console.WriteLine("No change required.");
+            return 0;
         }
 
-        if (productPrice > amountGiven)
+        foreach (var item in changeItems)
         {
-            _console.WriteLine("Amount given must be greater than or equal to the product price.");
-            return 1;
-        }
-
-        var result = _calculatorService.CalculateChange(amountGiven, productPrice);
-
-        _console.WriteLine();
-        _console.WriteLine("Your change is:");
-
-        foreach (var item in result)
-        {
-            _console.WriteLine($"{item.Count} x {item.Denomination.DisplayName}");
+            Console.WriteLine($"{item.Count} x {item.Denomination.DisplayName}");
         }
 
         return 0;

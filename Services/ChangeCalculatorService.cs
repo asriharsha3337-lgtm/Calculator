@@ -4,10 +4,10 @@ namespace ChangeCalculator.Services;
 
 public interface IChangeCalculatorService
 {
-    List<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice);
+    IReadOnlyList<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice);
 }
 
-public class ChangeCalculatorService : IChangeCalculatorService
+public sealed class ChangeCalculatorService : IChangeCalculatorService
 {
     private readonly List<Denomination> _denominations = new()
     {
@@ -25,14 +25,14 @@ public class ChangeCalculatorService : IChangeCalculatorService
         new() { ValueInPence = 1, DisplayName = "1p" }
     };
 
-    public List<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice)
+    public IReadOnlyList<ChangeItem> CalculateChange(decimal amountGiven, decimal productPrice)
     {
-        if (amountGiven < 0)
+        if (amountGiven < 0m)
         {
             throw new ArgumentOutOfRangeException(nameof(amountGiven), "Amount given cannot be negative.");
         }
 
-        if (productPrice < 0)
+        if (productPrice < 0m)
         {
             throw new ArgumentOutOfRangeException(nameof(productPrice), "Product price cannot be negative.");
         }
@@ -42,24 +42,25 @@ public class ChangeCalculatorService : IChangeCalculatorService
             throw new ArgumentException("Product price cannot exceed the amount given.", nameof(productPrice));
         }
 
-        int remaining = (int)Math.Round((amountGiven - productPrice) * 100, MidpointRounding.AwayFromZero);
+        int remaining = (int)Math.Round((amountGiven - productPrice) * 100m, MidpointRounding.AwayFromZero);
 
         var result = new List<ChangeItem>();
 
         foreach (var denomination in _denominations)
         {
             int count = remaining / denomination.ValueInPence;
-
-            if (count > 0)
+            if (count <= 0)
             {
-                result.Add(new ChangeItem
-                {
-                    Denomination = denomination,
-                    Count = count
-                });
-
-                remaining %= denomination.ValueInPence;
+                continue;
             }
+
+            result.Add(new ChangeItem
+            {
+                Denomination = denomination,
+                Count = count
+            });
+
+            remaining %= denomination.ValueInPence;
         }
 
         return result;
